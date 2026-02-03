@@ -37,9 +37,6 @@ start:
 	mov bp, sp
 	sub sp, 2 + 4 * SNAKE_MAX_LEN
 
-	xor cx, cx
-	mov [bp-2], cx
-
 	lea bx, [bp-2-2*SNAKE_MAX_LEN]
 	mov [snake_x], bx
 
@@ -120,18 +117,16 @@ start:
 ; *HEAD_X -> si
 ; *HEAD_Y -> di
 
-; Bounds check {
-	push dx
+; Clamp {
 	mov ax, [si]
-	mov dx, GRID_W
+	mov bx, GRID_W
 	call clamp
 	mov [si], ax
 
 	mov ax, [di]
-	mov dx, GRID_H
+	mov bx, GRID_H
 	call clamp
 	mov [di], ax
-	pop dx
 ; }
 
 ; Eating {
@@ -180,7 +175,6 @@ start:
 	dec ax	
 
 ; Check intersection {
-	push bx
 	get_snake_x si, bx
 	cmp cx, [si]
 	jne .si_check
@@ -190,7 +184,6 @@ start:
 	jne .si_check
 
 	mov [snake_len], 2
-	pop bx
 .si_check:
 ; }
 
@@ -299,10 +292,10 @@ clamp:
     xor ax, ax
     jmp .done
 .pos:
-    cmp ax, dx
+    cmp ax, bx
     jl .done
-	dec dx
-    mov ax, dx
+	dec bx
+    mov ax, bx
 .done:
 	ret
 
