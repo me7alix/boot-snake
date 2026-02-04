@@ -8,7 +8,7 @@ org 0x7c00
 %define GRID_W (WIDTH / TILE_SIZE)
 %define GRID_H (HEIGHT / TILE_SIZE)
 
-%define DELAY 3000
+%define SPEED 3
 %define BUFFER 0x8000
 %define SNAKE_MAX_LEN 256
 
@@ -44,25 +44,23 @@ start:
 	lea bx, [bp-2-4*SNAKE_MAX_LEN]
 	mov [snake_y], bx
 
-	xor cx, cx
-	get_snake_x si, 0
-	mov [si], cx
-	get_snake_y si, 0
-	mov [si], cx
+	; Zero intilizing
+	xor ax, ax
+	mov di, bp
+	sub di, 2 + 4*SNAKE_MAX_LEN
+	mov cx, 2*SNAKE_MAX_LEN
+	rep stosw
 
-; Main loop {
-.loop:
+	mov dword [0x0070], game
 
 ; Change snake direction {
-
-; Get pressed key {
+.loop:
 	mov ah, 1
 	int 0x16
 	jz .no_keys
 	xor ah, ah
 	int 0x16
 .no_keys:
-; }
 
 	cmp al, 'w'
 	mov cx, 0
@@ -89,13 +87,16 @@ start:
 	mov [dir_x], cx
 	mov [dir_y], dx
 .l10:
+	jmp .loop
 ; }
 
-; Delay {
-	inc word [bp-2]
-	cmp word [bp-2], DELAY
-	jl .loop
-; }
+game:
+    inc word [bp-2]
+	mov cx, [bp-2]
+    cmp cx, SPEED
+    jg .count
+	iret
+.count:
 
 	xor cx, cx
 	mov [bp-2], cx
@@ -247,8 +248,7 @@ start:
 ; }
 
 ; }
-	jmp .loop
-; }
+	iret
 
 draw_tile:
     mov bh, al
