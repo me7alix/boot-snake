@@ -8,6 +8,7 @@ org 0x7c00
 %define GRID_W (WIDTH / TILE_SIZE)
 %define GRID_H (HEIGHT / TILE_SIZE)
 
+%define DELAY 3000
 %define BUFFER 0x8000
 %define SNAKE_MAX_LEN 256
 
@@ -92,7 +93,7 @@ start:
 
 ; Delay {
 	inc word [bp-2]
-	cmp word [bp-2], 3000
+	cmp word [bp-2], DELAY
 	jl .loop
 ; }
 
@@ -119,21 +120,21 @@ start:
 
 ; Clamp {
 	mov ax, [si]
-	mov bx, GRID_W
+	mov bx, GRID_W-1
 	call clamp
 	mov [si], ax
 
 	mov ax, [di]
-	mov bx, GRID_H
+	mov bx, GRID_H-1
 	call clamp
 	mov [di], ax
 ; }
 
 ; Eating {
     cmp cx, [apple_x]
-    jne .j10
+    jne .se_done
     cmp dx, [apple_y]
-    jne .j10
+    jne .se_done
 
     mov ax, [apple_x]
     add al, [0x046C]
@@ -164,7 +165,7 @@ start:
 	inc word [snake_len]
 ; }
 
-.j10:
+.se_done:
 ; }
 
 ; Snake parts {
@@ -172,19 +173,19 @@ start:
 .sp_for:
 	dec bx
 	mov ax, bx
-	dec ax	
+	dec ax
 
 ; Check intersection {
 	get_snake_x si, bx
 	cmp cx, [si]
-	jne .si_check
+	jne .sp_check
 
 	get_snake_y si, bx
 	cmp dx, [si]
-	jne .si_check
+	jne .sp_check
 
 	mov [snake_len], 2
-.si_check:
+.sp_check:
 ; }
 
 	call copy_next
@@ -287,17 +288,18 @@ copy_next:
 	ret
 
 clamp:
-    cmp ax, 0
-    jge .pos
-    xor ax, ax
-    jmp .done
-.pos:
+    test ax, ax
+    js .neg
     cmp ax, bx
-    jl .done
-	dec bx
+    jle .done
     mov ax, bx
+    jmp .set
+.neg:
+    xor ax,ax
+.set:
+    mov word [snake_len],2
 .done:
-	ret
+    ret
 
 snake_x   dw 0
 snake_y   dw 0
