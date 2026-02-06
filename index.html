@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Boot snake</title>
+
+  <link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+  <script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+
+  <style>
+    html,body{height:100%;margin:0}
+    #dos { width:100%; height:100vh; background:#000; }
+  </style>
+</head>
+<body>
+  <div id="dos"></div>
+
+  <script>
+	Dos(document.getElementById("dos"), {
+		url: "bootgame.zip",
+		backend: "dosboxX",
+		backendLocked: true,
+	});
+  </script>
+</body>
+</html>

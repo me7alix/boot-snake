@@ -1,0 +1,7 @@
+{
+  "type": "dosbox",
+  "title": "Snake game",
+  "version": "7.4",
+  "box": "dosbox",
+  "config": ".jsdos/dosbox.conf"
+}

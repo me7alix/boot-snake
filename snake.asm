@@ -3,10 +3,10 @@ org 0x7c00
 
 %define WIDTH 320
 %define HEIGHT 192
-%define TILE_POW 4
+%define TILE_POW 4 ; 2 ^ 4 = 16
 %define TILE_SIZE (1 << TILE_POW)
-%define GRID_W (WIDTH / TILE_SIZE)
-%define GRID_H (HEIGHT / TILE_SIZE)
+%define COLS (WIDTH / TILE_SIZE)
+%define ROWS (HEIGHT / TILE_SIZE)
 
 %define SPEED 3
 %define BUFFER 0x8000
@@ -15,18 +15,16 @@ org 0x7c00
 %macro get_snake_y 2
     mov %1, %2
     shl %1, 1
-    sub %1, [snake_y]
+    add %1, [snake_y]
 %endmacro
 
 %macro get_snake_x 2
     mov %1, %2
     shl %1, 1
-    sub %1, [snake_x]
+    add %1, [snake_x]
 %endmacro
 
 start:
-    cli
-    cld
     xor ax, ax
     mov ds, ax
     mov ss, ax
@@ -36,15 +34,14 @@ start:
     int 0x10
 
 	mov bp, sp
-	sub sp, 2 + 4 * SNAKE_MAX_LEN
+	sub sp, 2 + 4*SNAKE_MAX_LEN
 
-	lea bx, [bp-2-2*SNAKE_MAX_LEN]
+	lea bx, [bp - 4]
 	mov [snake_x], bx
 
-	lea bx, [bp-2-4*SNAKE_MAX_LEN]
+	lea bx, [bp - 4 - 2*SNAKE_MAX_LEN]
 	mov [snake_y], bx
 
-	; Zero intilizing
 	xor ax, ax
 	mov di, bp
 	sub di, 2 + 4*SNAKE_MAX_LEN
@@ -55,38 +52,38 @@ start:
 
 ; Change snake direction {
 .loop:
+	hlt
 	mov ah, 1
 	int 0x16
-	jz .no_keys
+	jz .loop
+
 	xor ah, ah
 	int 0x16
-.no_keys:
 
 	cmp al, 'w'
 	mov cx, 0
 	mov dx, -1
-	je .l00
+	je .input
 
 	cmp al, 's'
 	mov cx, 0
 	mov dx, 1
-	je .l00
+	je .input
 
 	cmp al, 'a'
 	mov cx, -1
 	mov dx, 0
-	je .l00
+	je .input
 
 	cmp al, 'd'
 	mov cx, 1
 	mov dx, 0
-	je .l00
+	je .input
 
-	jmp .l10
-.l00:
+	jmp .loop
+.input:
 	mov [dir_x], cx
 	mov [dir_y], dx
-.l10:
 	jmp .loop
 ; }
 
@@ -121,12 +118,12 @@ game:
 
 ; Clamp {
 	mov ax, [si]
-	mov bx, GRID_W-1
+	mov bx, COLS-1
 	call clamp
 	mov [si], ax
 
 	mov ax, [di]
-	mov bx, GRID_H-1
+	mov bx, ROWS-1
 	call clamp
 	mov [di], ax
 ; }
@@ -140,7 +137,7 @@ game:
     mov ax, [apple_x]
     add al, [0x046C]
     xor ah, ah
-    mov bl, GRID_W
+    mov bl, COLS
     div bl
     xchg ah, al
     xor ah, ah
@@ -149,7 +146,7 @@ game:
     mov ax, [apple_y]
     add al, [0x046D]
     xor ah, ah
-    mov bl, GRID_H
+    mov bl, ROWS
     div bl
     xchg ah, al
     xor ah, ah
@@ -185,7 +182,7 @@ game:
 	cmp dx, [si]
 	jne .sp_check
 
-	mov [snake_len], 2
+	mov word [snake_len], 2
 .sp_check:
 ; }
 
@@ -297,7 +294,7 @@ clamp:
 .neg:
     xor ax,ax
 .set:
-    mov word [snake_len],2
+    mov word [snake_len], 2
 .done:
     ret
 
