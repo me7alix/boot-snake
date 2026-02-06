@@ -9,7 +9,6 @@ org 0x7c00
 %define ROWS (HEIGHT / TILE_SIZE)
 
 %define SPEED 3
-%define BUFFER 0x8000
 %define SNAKE_MAX_LEN 256
 
 %macro get_snake_y 2
@@ -88,8 +87,8 @@ start:
 ; }
 
 game:
-    inc word [bp-2]
-	mov cx, [bp-2]
+    inc word [bp - 2]
+	mov cx, [bp - 2]
     cmp cx, SPEED
     jg .count
 	iret
@@ -193,10 +192,10 @@ game:
 ; }
 
 ; Drawing {
+    mov ax, 0xA000
+    mov es, ax
 
 ; Screen clear {
-	mov ax, BUFFER
-    mov es, ax
     xor di, di
     mov cx, WIDTH * HEIGHT
 	mov al, 17
@@ -229,19 +228,6 @@ game:
 	mov dx, [apple_y]
 	mov ax, 4
 	call draw_tile
-; }
-
-; Flip buffer {
-	push ds
-    mov ax, BUFFER
-    mov ds, ax
-    mov ax, 0xA000
-    mov es, ax
-    xor si, si
-    xor di, di
-    mov cx, WIDTH * HEIGHT / 2
-    rep movsw
-    pop ds
 ; }
 
 ; }
