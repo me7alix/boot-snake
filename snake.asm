@@ -3,61 +3,55 @@ org 0x7c00
 
 %define WIDTH 320
 %define HEIGHT 192
-%define TILE_POW 4 ; 2 ^ 4 = 16
+%define TILE_POW 4
 %define TILE_SIZE (1 << TILE_POW)
 %define COLS (WIDTH / TILE_SIZE)
 %define ROWS (HEIGHT / TILE_SIZE)
 
 %define SPEED 3
+%define BUFFER 0x8000
 %define SNAKE_MAX_LEN 256
+
+%define SNAKE_X 0x5000
+%define SNAKE_Y (SNAKE_X + 2 * SNAKE_MAX_LEN)
 
 %macro get_snake_y 2
     mov %1, %2
     shl %1, 1
-    add %1, [snake_y]
+    add %1, SNAKE_Y
 %endmacro
 
 %macro get_snake_x 2
     mov %1, %2
     shl %1, 1
-    add %1, [snake_x]
+    add %1, SNAKE_X
 %endmacro
 
 start:
     xor ax, ax
     mov ds, ax
     mov ss, ax
-    mov sp, 0x7b00
+    mov sp, 0x3000
 
     mov al, 0x13
     int 0x10
 
-	mov bp, sp
-	sub sp, 2 + 4*SNAKE_MAX_LEN
-
-	lea bx, [bp - 4]
-	mov [snake_x], bx
-
-	lea bx, [bp - 4 - 2*SNAKE_MAX_LEN]
-	mov [snake_y], bx
-
 	xor ax, ax
-	mov di, bp
-	sub di, 2 + 4*SNAKE_MAX_LEN
-	mov cx, 2*SNAKE_MAX_LEN
+	mov es, ax
+	mov di, SNAKE_X + 4*SNAKE_MAX_LEN
+	mov cx, 4*SNAKE_MAX_LEN
 	rep stosw
 
-	mov dword [0x0070], game
+	mov dword [0x0070], game_loop
 
 ; Change snake direction {
 .loop:
-	hlt
 	mov ah, 1
 	int 0x16
-	jz .loop
-
+	jz .no_keys
 	xor ah, ah
 	int 0x16
+.no_keys:
 
 	cmp al, 'w'
 	mov cx, 0
@@ -86,16 +80,16 @@ start:
 	jmp .loop
 ; }
 
-game:
-    inc word [bp - 2]
-	mov cx, [bp - 2]
+game_loop:
+    inc word [timer]
+	mov cx, [timer]
     cmp cx, SPEED
     jg .count
 	iret
 .count:
 
 	xor cx, cx
-	mov [bp-2], cx
+	mov [timer], cx
 
 	get_snake_x si, 0
 	get_snake_y di, 0
@@ -150,7 +144,6 @@ game:
     xchg ah, al
     xor ah, ah
     mov [apple_y], ax
-; }	
 
 ; Add snake part {
 	mov ax, [snake_len]
@@ -167,7 +160,7 @@ game:
 
 ; Snake parts {
 	mov bx, [snake_len]
-.sp_for:
+.sp_loop:
 	dec bx
 	mov ax, bx
 	dec ax
@@ -175,24 +168,24 @@ game:
 ; Check intersection {
 	get_snake_x si, bx
 	cmp cx, [si]
-	jne .sp_check
+	jne .ci_check
 
 	get_snake_y si, bx
 	cmp dx, [si]
-	jne .sp_check
+	jne .ci_check
 
-	mov word [snake_len], 2
-.sp_check:
+	mov [snake_len], 2
+.ci_check:
 ; }
 
 	call copy_next
 
 	cmp bx, 2
-	jge .sp_for
+	jge .sp_loop
 ; }
 
 ; Drawing {
-    mov ax, 0xA000
+	mov ax, BUFFER
     mov es, ax
 
 ; Screen clear {
@@ -205,7 +198,7 @@ game:
 ; Draw snake {
 	xor cx, cx
 
-.sd_for:
+.ds_loop:
 	get_snake_x si, cx
 	mov ax, [si]
 	get_snake_y si, cx
@@ -220,7 +213,7 @@ game:
 
 	inc cx
 	cmp cx, [snake_len]
-	jne .sd_for
+	jne .ds_loop
 ; }
 
 ; Draw apple {
@@ -228,6 +221,19 @@ game:
 	mov dx, [apple_y]
 	mov ax, 4
 	call draw_tile
+; }
+
+; Flip buffer {
+	push ds
+    mov ax, BUFFER
+    mov ds, ax
+    mov ax, 0xA000
+    mov es, ax
+    xor si, si
+    xor di, di
+    mov cx, WIDTH * HEIGHT / 2
+    rep movsw
+    pop ds
 ; }
 
 ; }
@@ -258,6 +264,7 @@ draw_tile:
 
 copy_next:
 	push cx
+
 	get_snake_x si, ax
 	mov cx, [si]
 	get_snake_x si, bx
@@ -267,6 +274,7 @@ copy_next:
 	mov cx, [si]
 	get_snake_y si, bx
 	mov [si], cx
+
 	pop cx
 	ret
 
@@ -284,8 +292,7 @@ clamp:
 .done:
     ret
 
-snake_x   dw 0
-snake_y   dw 0
+timer     dw 0
 snake_len dw 1
 apple_x   dw 0
 apple_y   dw 0
