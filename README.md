@@ -9,6 +9,9 @@ The goal is to make a game in assembly that fits into 512 bytes of bootloader an
 
 ## Build and run
 ```
-chmod +x run.sh
-./run.sh
+# run the game in qemu
+make run
+# or run it in a browser using jsdos
+make jsdos
+python3 -m http.server 8000
 ```
